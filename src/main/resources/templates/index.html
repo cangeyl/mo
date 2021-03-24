@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>student管理</title>
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <!-- 引入样式 -->
+    <link href="./index.css" rel="stylesheet">
+    <link href="./plugins/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+    <link href="./style.css" rel="stylesheet">
+
+    <!-- 上传图片框样式，不使用上传组件可以删除此样式 -->
+    <style>
+        .avatar-uploader .el-upload {
+            border: 1px dashed #d9d9d9;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .avatar-uploader .el-upload:hover {
+            border-color: #409EFF;
+        }
+
+        .avatar-uploader-icon {
+            font-size: 28px;
+            color: #8c939d;
+            width: 150px;
+            height: 70px;
+            line-height: 150px;
+            text-align: center;
+        }
+
+        .avatar {
+            width: 150px;
+            height: 70px;
+            display: block;
+        }
+    </style>
+</head>
+
+<body class="hold-transition">
+<div id="app">
+
+    <el-tabs @tab-click="handleClick" v-model="activeName">
+        <el-tab-pane label="学生管理" name="first">
+
+            <div class="content-header">
+                <a href="/logout">退出登录</a>
+                <div>登录人</div>
+                <div>{{us}}</div>
+            </div>
+
+            <div class="app-container">
+                <div class="box">
+                    <div class="filter-container">
+                        <!--查询表单-->
+                        <el-form :inline="true">
+
+                            <el-form-item label="birthday">
+
+                                <div class="block">
+                                    <el-date-picker placeholder="生日" type="date" v-model="searchMap.birthday1">
+                                    </el-date-picker>
+                                </div>
+                                <div class="block">
+                                    <el-date-picker placeholder="生日" type="date" v-model="searchMap.birthday2">
+                                    </el-date-picker>
+                                </div>
+
+                            </el-form-item>
+
+                            <el-form-item label="clazz">
+
+                                <el-select v-model="searchMap.clazz">
+                                    <el-option value="班1">班1</el-option>
+                                    <el-option value="班2">班2</el-option>
+                                    <el-option value="班3">班3</el-option>
+                                    <el-option value="班4">班4</el-option>
+                                </el-select>
+
+                            </el-form-item>
+                            <el-form-item label="name">
+                                <el-input class="filter-item" placeholder="name" v-model="searchMap.name"></el-input>
+                            </el-form-item>
+                            <el-form-item label="sex">
+                                <el-input class="filter-item" placeholder="sex" v-model="searchMap.sex"></el-input>
+                            </el-form-item>
+
+
+                            <el-button @click="fetchData()" class="dalfBut">查询</el-button>
+
+
+                            <span v-if="z">
+                        <el-button @click="formVisible=true;pojo={}" class="butT" type="primary">新增</el-button>
+                    </span>
+                        </el-form>
+
+
+
+                    </div>
+                    <span v-if="d">
+            <el-input placeholder="请输入导出路径" v-model="searchMap.url"></el-input>
+            <el-button @click="daochu()" class="dalfBut">导出数据</el-button>
+            <el-input placeholder="请输入导入路径" v-model="searchMap.url"></el-input>
+            <el-button @click="daoru()" class="dalfBut">导入数据</el-button>
+            </span>
+                    <el-table :data="tableData" style="width: 100%">
+
+
+                        <el-table-column label="操作">
+                            <template slot-scope="scope">
+
+                            <span v-if="x">
+                            <el-button @click="edit(scope.row.id)" size="mini" type="primary">修改
+                            </el-button>
+                            </span>
+
+                                <span v-if="s">
+                            <el-button @click="dele(scope.row.id)" size="mini" type="danger">删除
+                            </el-button>
+                            </span>
+
+                            </template>
+                        </el-table-column>
+                        <el-table-column fixed label="姓名" prop="name" width="150">
+                        </el-table-column>
+                        <el-table-column fixed label="生日" prop="birthday" width="150">
+                        </el-table-column>
+                        <el-table-column fixed label="性别" prop="sex" width="150">
+                        </el-table-column>
+                        <el-table-column fixed label="班级" prop="clazz" width="150">
+                        </el-table-column>
+                    </el-table>
+
+                    <div class="pagination-container">
+                        <el-pagination :current-page.sync="currentPage" :page-size="size" :page-sizes="[10, 20, 30, 40]"
+                                       :total="total" @current-change="fetchData" @size-change="fetchData"
+                                       class="pagiantion" layout="total, sizes, prev, pager, next, jumper">
+                        </el-pagination>
+                    </div>
+
+
+                    <div class="add-form">
+                        <!--弹出窗口-->
+                        <el-dialog :visible.sync="formVisible" title="编辑">
+                            <el-form label-width="80px">
+                                <el-form-item label="birthday">
+                                    <div class="block">
+                                        <el-date-picker placeholder="生日" type="date" v-model="pojo.birthday">
+                                        </el-date-picker>
+                                    </div>
+                                </el-form-item>
+                                <el-form-item label="clazz">
+                                    <el-select v-model="pojo.clazz">
+                                        <el-option value="班1">班1</el-option>
+                                        <el-option value="班2">班2</el-option>
+                                        <el-option value="班3">班3</el-option>
+                                        <el-option value="班4">班4</el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="hobby">
+                                    <el-checkbox-group @change="handleCheckedCitiesChange" v-model="checkedCities">
+                                        <el-checkbox :key="city" :label="city" v-for="city in cities">{{city}}
+                                        </el-checkbox>
+                                    </el-checkbox-group>
+                                </el-form-item>
+                                <el-form-item label="name">
+                                    <el-input v-model="pojo.name"></el-input>
+                                </el-form-item>
+                                <el-form-item label="sex">
+                                    <el-radio label="男" v-model="pojo.sex">男</el-radio>
+                                    <el-radio label="女" v-model="pojo.sex">女</el-radio>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button @click="save()" type="primary">保存</el-button>
+                                    <el-button @click="formVisible = false">关闭</el-button>
+                                </el-form-item>
+                            </el-form>
+                        </el-dialog>
+                    </div>
+
+
+                </div>
+            </div>
+        </el-tab-pane>
+
+
+        <el-tab-pane label="用户管理" name="second">
+
+
+        <span v-if="c">
+            <el-button @click="formVisible2=true;pojo2={}" class="butT" type="primary">新增用户</el-button>
+            <el-table :data="tabledata" style="width: 100%">
+                <el-table-column label="操作">
+                    <template slot-scope="scope">
+                             <el-button @click="edit2(scope.row.username)" size="mini" type="primary">修改
+                            </el-button>
+                             <el-button @click="dele2(scope.row.username)" size="mini" type="danger">删除
+                            </el-button>
+                    </template>
+                </el-table-column>
+                <el-table-column fixed label="姓名" prop="username" width="150">
+                </el-table-column>
+
+
+                <el-table-column fixed label="角色" prop="actorname" width="150">
+                </el-table-column>
+                <el-table-column fixed label="权限" prop="purview" width="150">
+                </el-table-column>
+            </el-table>
+        </span>
+
+        <span v-if="!c">
+            没有权限
+        </span>
+            <div class="add-form">
+                <!--弹出窗口-->
+                <el-dialog :visible.sync="formVisible2" title="用户">
+                    <el-form label-width="80px">
+
+                        <el-form-item label="姓名">
+                            <el-input v-model="pojo2.username"></el-input>
+                        </el-form-item>
+                        <el-form-item label="角色">
+                                <el-select v-model="pojo2.actorname" clearable filterable placeholder="请选择角色" >
+                                    <el-option
+                                            v-for="item in actor"
+                                            :key="item.username"
+                                            :label="item.actorname"
+                                            :value="item.actorname" />
+                                </el-select>
+                        </el-form-item>
+                        <el-form-item label="权限">
+                            <div>
+                                {{pojo2}}
+                                <el-checkbox-group v-model="purview2">
+                                    <el-checkbox-button v-for="item in purview" :label="item.purviewname" :key="item.purviewname" :value="item.purviewname"/>
+                                </el-checkbox-group>
+                            </div>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button @click="save()" type="primary">保存</el-button>
+                            <el-button @click="formVisible = false">关闭</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-dialog>
+            </div>
+
+
+
+
+        </el-tab-pane>
+
+        <el-tab-pane label="角色管理" name="third">
+
+            <span v-if="c">
+
+
+
+            <el-button @click="formVisible3=true;pojo3={}" class="butT" type="primary">新增角色</el-button>
+
+            <el-table :data="actor" style="width: 100%">
+                <el-table-column label="操作">
+                    <template slot-scope="scope">
+                        <el-button @click="edit2(scope.row.actorname)" size="mini" type="primary">修改
+                        </el-button>
+                        <el-button @click="dele2(scope.row.actorname)" size="mini" type="danger">删除
+                        </el-button>
+                    </template>
+                </el-table-column>
+
+                <el-table-column fixed label="角色名" prop="actorname" width="150">
+                </el-table-column>
+                <el-table-column fixed label="角色权限" prop="purview" width="150">
+                </el-table-column>
+            </el-table>
+</span>
+            <span v-if="!c">
+                没有权限
+            </span>
+            <div class="add-form">
+                <!--弹出窗口-->
+                <el-dialog :visible.sync="formVisible3" title="角色">
+                    <el-form label-width="80px">
+
+                        <el-form-item label="角色">
+                            <el-input v-model="pojo3.actorname"></el-input>
+                        </el-form-item>
+                        <el-form-item label="权限">
+                            <el-input v-model="pojo3.purview"></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button @click="save()" type="primary">保存</el-button>
+                            <el-button @click="formVisible = false">关闭</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-dialog>
+            </div>
+
+        </el-tab-pane>
+
+
+        <el-tab-pane label="权限管理" name="fourth">
+            <span v-if="c">
+
+            <el-button @click="formVisible4=true;pojo4={}" class="butT" type="primary">新增权限</el-button>
+
+            <el-table :data="purview" style="width: 100%">
+                <el-table-column label="操作">
+                    <template slot-scope="scope">
+                        <el-button @click="dele2(scope.row.username)" size="mini" type="danger">删除
+                        </el-button>
+                    </template>
+                </el-table-column>
+                    <el-table-column fixed label="权限名" prop="purviewname" width="150">
+                    </el-table-column>
+            </el-table>
+            </span>
+
+            <span v-if="!c">
+                没有权限
+            </span>
+
+            <div class="add-form">
+                <!--弹出窗口-->
+                <el-dialog :visible.sync="formVisible4" title="权限">
+                    <el-form label-width="80px">
+
+                        <el-form-item label="权限名称">
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button @click="save()" type="primary">保存</el-button>
+                            <el-button @click="formVisible = false">关闭</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-dialog>
+            </div>
+
+        </el-tab-pane>
+
+
+    </el-tabs>
+
+</div>
+</body>
+<script src="./js/vue.js"></script>
+<script src="./js/axios.js"></script>
+<script src="./js/elementui.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            const cityOptions = ['抽烟', '喝酒', '烫头', 'rap'];
+            return {
+                tableData: [],
+                tabledata: [],
+                actor:[],
+                purview:[],
+                purview2:[],
+                currentPage: 1,
+                total: 10,
+                size: 2,
+                searchMap: {},
+                pojo: {},
+                pojo2: {purview:['查']},
+                pojo3: {},
+                pojo4: {},
+                formVisible: false,
+                formVisible2: false,
+                formVisible3: false,
+                formVisible4: false,
+                imageUrl: '',
+                checkAll: false,
+                checkedCities: ['抽烟', '喝酒'],
+                cities: cityOptions,
+                isIndeterminate: true,
+                uurrll: "",
+                us: "",
+                activeName: 'second',
+                x: 0,
+                z: 0,
+                s: 0,
+                g: 0,
+                d: 0,
+                c: 0
+            }
+        },
+        created() {
+            this.fetchData();
+            this.fetchdata();
+            this.fpurview();
+            this.factor();
+            this.iii();
+        },
+        methods: {
+            fetchData() {
+                axios.post(`http://localhost:9026/findAll?page=${this.currentPage}&size=${this.size}`, this.searchMap).then(response => {
+
+                    this.tableData = response.data.data.content;
+                    this.total = response.data.data.content.size;
+
+                });
+            },//purview  actor
+            fetchdata() {
+                axios.get(`http://localhost:8080/users/findAll`).then(response => {
+
+                    this.tabledata = response.data.data;
+                 });
+            },
+            fpurview() {
+                axios.get(`http://localhost:8080/purview/findAll`).then(response => {
+
+                    this.purview = response.data.data;
+                 });
+            },
+            factor() {
+                axios.get(`http://localhost:8080/actor/findAll`).then(response => {
+
+                    this.actor = response.data.data;
+                 });
+            },
+            save() {
+                // this.pojo.image= this.imageUrl; //如页面有图片上传功能放开注释
+                axios.post(`http://localhost:9026/${this.pojo.id == null ? 'add' : 'update'}`, this.pojo).then(response => {
+                    this.fetchData(); //刷新列表
+                    this.formVisible = false;//关闭窗口
+                });
+            },
+            edit(id) {
+                this.formVisible = true // 打开窗口
+                // 调用查询
+                axios.get(`http://localhost:9026/findById?id=${id}`).then(response => {
+                    this.pojo = response.data;
+                    // this.imageUrl=this.pojo.image //显示图片  如页面有图片上传功能放开注释
+                })
+            },
+            edit2(id) {
+                this.formVisible2 = true // 打开窗口
+                // 调用查询
+                axios.get(`http://localhost:8080/users/findById?id=${id}`).then(response => {
+                    this.pojo2 = response.data;
+                    this.purview2=this.pojo2.purview
+                    // this.imageUrl=this.pojo.image //显示图片  如页面有图片上传功能放开注释
+                })
+            },
+            dele(id) {
+                this.$confirm('确定要删除此记录吗?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios.get(`http://localhost:9026/delete?id=${id}`).then(response => {
+                        this.fetchData(); //刷新列表
+                    })
+                })
+            },
+            handleCheckAllChange(val) {
+                this.checkedCities = val ? cityOptions : [];
+                this.isIndeterminate = false;
+
+            },
+            handleCheckedCitiesChange(value) {
+                let checkedCount = value.length;
+                this.checkAll = checkedCount === this.cities.length;
+                this.isIndeterminate = checkedCount > 0 && checkedCount < this.cities.length;
+                this.pojo.hobby = JSON.stringify(this.checkedCities)
+            },
+            daochu() {
+                axios.post(`http://localhost:9026/daochu`, this.searchMap).then(response => {
+                    alert("导出成功")
+                })
+            },
+            daoru() {
+                axios.post(`http://localhost:9026/daoru`, this.searchMap).then(response => {
+                    alert("导入成功")
+                    this.tableData = response.data
+                })
+            },
+            iii() {
+                axios.get(`http://localhost:8080/users/us`).then(response => {
+                    this.us = response.data.name
+                    this.z = response.data.z
+                    this.x = response.data.x
+                    this.s = response.data.s
+                    this.g = response.data.g
+                    this.d = response.data.d
+                    this.c = response.data.c
+                })
+            },
+            handleClick(tab, event) {
+                console.log(tab, event);
+            }
+
+            /* ****图片上传相关代码  如页面有图片上传功能放开注释 ****
+            handleAvatarSuccess(res, file) {
+                this.imageUrl = file.response;
+            },
+            beforeAvatarUpload(file) {
+                const isJPG = file.type === 'image/jpeg';
+                const isLt2M = file.size / 1024 / 1024 < 2;
+
+                if (!isJPG) {
+                    this.$message.error('上传头像图片只能是 JPG 格式!');
+                }
+                if (!isLt2M) {
+                    this.$message.error('上传头像图片大小不能超过 2MB!');
+                }
+                return isJPG && isLt2M;
+            }*/
+        }
+    })
+</script>
+
+</html>
